@@ -26,13 +26,18 @@ def build_notes_messages(transcript: str, target_lang: str) -> list[dict]:
     ]
 
 
+def _clean_notes(text: str) -> str:
+    index = text.find("## ")
+    return text[index:] if index > 0 else text.strip()
+
+
 def _complete(client, model: str, messages: list[dict]) -> str:
     response = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0.2,
     )
-    return response.choices[0].message.content.strip()
+    return _clean_notes(response.choices[0].message.content.strip())
 
 
 def generate_notes(

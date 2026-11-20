@@ -62,3 +62,20 @@ def format_timestamp(seconds: float) -> str:
 
 def format_transcript(segments: list[Segment]) -> str:
     return "\n".join(f"[{format_timestamp(seg.start)}] {seg.text}" for seg in segments)
+
+
+def merge_segments(segments: list[Segment], max_chars: int = 240) -> list[Segment]:
+    merged: list[Segment] = []
+    buffer = ""
+    start = None
+    for segment in segments:
+        if start is None:
+            start = segment.start
+        buffer += segment.text
+        if len(buffer) >= max_chars or buffer.endswith(("。", "！", "？", ".", "!", "?")):
+            merged.append(Segment(start, buffer))
+            buffer = ""
+            start = None
+    if buffer:
+        merged.append(Segment(start, buffer))
+    return merged

@@ -5,6 +5,7 @@ from transcribe import (
     Segment,
     format_timestamp,
     format_transcript,
+    merge_segments,
     transcribe_all,
     transcribe_chunk,
 )
@@ -65,3 +66,13 @@ def test_timestamp_over_hour():
 
 def test_transcript_line_format():
     assert format_transcript([Segment(5, "你好")]) == "[00:05] 你好"
+
+
+def test_merge_segments_joins_until_sentence_end():
+    segments = [Segment(0, "今天分享"), Segment(3, "的主题是AI"), Segment(5, "。"), Segment(7, "下一句")]
+    assert merge_segments(segments) == [Segment(0, "今天分享的主题是AI。"), Segment(7, "下一句")]
+
+
+def test_merge_segments_respects_max_chars():
+    segments = [Segment(0, "字" * 10), Segment(1, "字" * 10), Segment(2, "字" * 10)]
+    assert merge_segments(segments, max_chars=15) == [Segment(0, "字" * 20), Segment(2, "字" * 10)]

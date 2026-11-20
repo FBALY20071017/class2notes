@@ -11,15 +11,15 @@ from openai import OpenAI
 from asr_local import LOCAL_ASR_MODEL, transcribe_chunk_local
 from audio import has_speech, prepare_audio
 from notes import assemble_markdown, generate_notes
-from transcribe import format_transcript, transcribe_all, transcribe_chunk
+from transcribe import format_transcript, merge_segments, transcribe_all, transcribe_chunk
 
 load_dotenv()
 
 OLLAMA_DEFAULT = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
 OLLAMA_MODELS = [
-    "qwen3.8:latest",
-    "deepseek:latest",
     "modelscope.cn/unsloth/gpt-oss-20b-GGUF:Q4_K_M",
+    "deepseek:latest",
+    "qwen3.8:latest",
 ]
 
 st.set_page_config(page_title="class2notes", page_icon="📝", layout="wide")
@@ -57,14 +57,21 @@ with st.sidebar:
     if "本地" in llm_mode:
         llm_base = st.text_input("Ollama 地址", OLLAMA_DEFAULT)
         preset = st.selectbox("笔记模型", OLLAMA_MODELS + ["自定义"])
-        llm_model = st.text_input("自定义模型名", "qwen3.8:latest") if preset == "自定义" else preset
+        llm_model = (
+            st.text_input("自定义模型名", "modelscope.cn/unsloth/gpt-oss-20b-GGUF:Q4_K_M")
+            if preset == "自定义"
+            else preset
+        )
     else:
         llm_base = cloud_base
         llm_model = st.text_input("笔记模型", os.getenv("LLM_MODEL", ""))
 
     target_lang = st.selectbox("笔记语言", ["中文", "English"])
     chunk_minutes = st.number_input("切片长度（分钟）", min_value=5, max_value=60, value=20)
-    st.caption("本地模式无需任何 API key。若笔记明显变短，请确认 Ollama 上下文已设为 16384。")
+    st.caption(
+        "本地模式无需任何 API key。默认 gpt-oss-20b（11GB）；"
+        "qwen3.8 在 24GB 内存下处理长文本可能显存不足。"
+    )
 
 st.title("class2notes")
 st.caption("上传网课或会议录音，生成一页结构化 Markdown 笔记。")
@@ -117,7 +124,8 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
                 if not segments:
                     raise RuntimeError("未识别到语音，请换一段有说话的音频")
 
-                status.write(f"转写完成，共 {len(segments)} 句；生成笔记中…")
+                segments = merge_segments(segments)
+                status.write(f"转写完成，共 {len(segments)} 段；生成笔记中…")
                 transcript_md = format_transcript(segments)
 
                 llm_client = OpenAI(
@@ -129,7 +137,7 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
                     transcript_md,
                     llm_model,
                     target_lang,
-                    max_chars_per_call=3000 if local_llm else 12000,
+                    max_chars_per_call=2000 if local_llm else 12000,
                 )
 
                 st.session_state["md"] = assemble_markdown(
@@ -141,7 +149,10 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
                 status.update(label="完成", state="complete")
             except Exception as error:
                 status.update(label="失败", state="error")
-                st.error(str(error)[:300])
+                message = str(error)
+                if "Insufficient Memory" in message or "OutOfMemory" in message:
+                    message = "本地模型显存不足：请换用 gpt-oss-20b 或 deepseek，或缩短切片长度。"
+                st.error(message[:300])
 
 if "md" in st.session_state:
     st.subheader(st.session_state["file"])

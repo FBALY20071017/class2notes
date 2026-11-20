@@ -24,8 +24,8 @@
 ## 约束
 
 - 一天内完成；单机运行；本机为 arm64 Mac / 24GB 内存
-- 本地模型：Ollama `qwen3.8:latest`（27.8B，nvfp4，约 26 tok/s）、`deepseek:latest`、gpt-oss-20b 备选
-- Ollama 默认上下文 4096，必须调至 16384 才能处理长转写
+- 本地模型：默认 gpt-oss-20b（11GB，实测 7 分钟录音 58 秒出笔记）；`deepseek:latest` 备选；qwen3.8（18GB）在 24GB 机器上处理长文本会显存不足
+- Ollama 默认上下文 4096，本机调到 8192（16384 会让 27B 模型 OOM）
 - 中文用户为主
 
 ## 方案比较
@@ -38,9 +38,9 @@
 
 - 流水线：ffmpeg 抽音轨（16k 单声道 wav）→ 按 20 分钟切片 → 逐片转写（本地 mlx-whisper 或云端 ASR）→ 合并带偏移时间戳 → LLM 生成笔记（本地 Ollama 或云端）
 - 本地 ASR：`mlx-community/whisper-large-v3-turbo`，按切片调用并累加偏移
-- 本地 LLM：默认 `qwen3.8:latest`；`OLLAMA_CONTEXT_LENGTH=16384`，README 写明设置方法
+- 本地 LLM：默认 gpt-oss-20b；`OLLAMA_CONTEXT_LENGTH=8192`，README 写明设置方法
 - 笔记固定四段：一句话总结 / 核心要点 / 术语表 / 完整转写（`<details>` 折叠）
-- 长文：转写超过单次上限时 map-reduce；本地模式默认每次 3000 字符，云端 12000
+- 长文：转写先按句子合并成段落，再在超过单次上限时 map-reduce；本地模式每次 2000 字符，云端 12000
 - 云端 ASR 不返回 `segments` 时降级为整片一段（无时间戳），不报错
 - 代码结构：`app.py`（UI）、`audio.py`、`transcribe.py`（云端 + 合并）、`asr_local.py`（本地）、`notes.py`、`prompts.py`
 - 验收物料：README（架构图、设计取舍、成本耗时表）、60–90 秒录屏、≥3 个有意义的 commit

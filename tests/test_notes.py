@@ -52,6 +52,18 @@ def test_empty_transcript_rejected():
         generate_notes(FakeLLM(), "  \n", "llm", "中文")
 
 
+class PreambleLLM(FakeLLM):
+    def _create(self, **kwargs):
+        self.calls += 1
+        content = "好的，这是合并后的笔记：\n\n## 一句话总结\n- 测试"
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+
+
+def test_strips_model_preamble():
+    out = generate_notes(PreambleLLM(), "短文本", "llm", "中文")
+    assert out.startswith("## 一句话总结")
+
+
 def test_assemble_wraps_transcript():
     md = assemble_markdown("标题", "lecture.mp4", "## 笔记", "[00:05] 你好")
     assert md.startswith("# 标题")

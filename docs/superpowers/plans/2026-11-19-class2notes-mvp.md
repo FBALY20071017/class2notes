@@ -14,9 +14,10 @@
 
 - Python ≥ 3.10（本机已有 Homebrew Python 3.11，用 `/opt/homebrew/bin/python3.11 -m venv .venv`；系统自带 3.9 不要用）
 - `ffmpeg` 与 `ffprobe` 必须在 PATH 上
-- 默认后端全本地：Ollama `qwen3.8:latest` + `mlx-community/whisper-large-v3-turbo`；云端仅作为可选后端
-- Ollama 上下文必须为 16384（`OLLAMA_CONTEXT_LENGTH=16384` 后重启 Ollama）
-- 本地模式单次输入上限 3000 字符，云端 12000 字符
+- 默认后端全本地：Ollama gpt-oss-20b（11GB）+ `mlx-community/whisper-large-v3-turbo`；云端仅作为可选后端
+- qwen3.8（18GB）仅用于短文本；24GB 机器上处理长转写会显存不足
+- Ollama 上下文必须为 8192（`OLLAMA_CONTEXT_LENGTH=8192` 后重启 Ollama）
+- 本地模式单次输入上限 2000 字符，云端 12000 字符
 - 任何情况下仓库中不得出现真实密钥；云端 key 只从环境变量或侧边栏读取
 - 全部 UI 文案为中文；音频处理目标格式 16kHz 单声道 wav
 - 切片长度默认 1200 秒
@@ -106,13 +107,13 @@ Expected: 输出 `ok`
 - [ ] **Step 8: 配置 Ollama 上下文并验证**
 
 ```bash
-launchctl setenv OLLAMA_CONTEXT_LENGTH 16384
+launchctl setenv OLLAMA_CONTEXT_LENGTH 8192
 # 退出菜单栏 Ollama 后重新打开
 open -a Ollama
 ollama run qwen3.8:latest "你好" --verbose >/dev/null
 ollama ps
 ```
-Expected: `CONTEXT` 列为 `16384`
+Expected: `CONTEXT` 列为 `8192`
 
 - [ ] **Step 9: Commit**
 
@@ -484,7 +485,7 @@ git commit -m "feat: add Streamlit UI with local and cloud backends"
 
 - [ ] **Step 1: 本地全链路跑通，记录耗时**
 
-Expected: 10 分钟音频 5 分钟内出笔记；四段齐全；`ollama ps` 显示 `CONTEXT 16384`
+Expected: 10 分钟音频 5 分钟内出笔记；四段齐全；`ollama ps` 显示 `CONTEXT 8192`
 
 - [ ] **Step 2: 检查质量并调整 `prompts.py`**
 
@@ -512,7 +513,7 @@ git commit -m "fix: tune note prompts on real lecture audio"
 
 - [ ] **Step 1: 写 README**
 
-结构：一句话定位 → 演示 GIF（顶部）→ 它做什么 → 快速开始（**无需 API key**：装 ffmpeg → venv 装依赖 → 设 `OLLAMA_CONTEXT_LENGTH=16384` 并重启 Ollama → `streamlit run app.py`）→ 本地模型说明（默认 qwen3.8，备选 deepseek / gpt-oss，质量对比说明）→ 可选云端配置（base_url/key，成本表）→ 工作原理（文字版架构图）→ 设计取舍（为什么本地优先、为什么切片 20 分钟、为什么四段固定）→ 隐私（音频与文本不出本机）→ Roadmap（v0.2 实时字幕 Chrome 扩展）。
+结构：一句话定位 → 演示 GIF（顶部）→ 它做什么 → 快速开始（**无需 API key**：装 ffmpeg → venv 装依赖 → 设 `OLLAMA_CONTEXT_LENGTH=8192` 并重启 Ollama → `streamlit run app.py`）→ 本地模型说明（默认 qwen3.8，备选 deepseek / gpt-oss，质量对比说明）→ 可选云端配置（base_url/key，成本表）→ 工作原理（文字版架构图）→ 设计取舍（为什么本地优先、为什么切片 20 分钟、为什么四段固定）→ 隐私（音频与文本不出本机）→ Roadmap（v0.2 实时字幕 Chrome 扩展）。
 
 - [ ] **Step 2: 录 60–90 秒屏幕演示**
 
