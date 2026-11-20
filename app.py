@@ -22,7 +22,7 @@ OLLAMA_MODELS = [
     "qwen3.8:latest",
 ]
 
-st.set_page_config(page_title="class2notes", page_icon="📝", layout="wide")
+st.set_page_config(page_title="class2notes", layout="wide")
 
 
 def unload_ollama(base_url: str, model: str) -> None:
