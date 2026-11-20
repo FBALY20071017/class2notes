@@ -93,6 +93,7 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
         src = Path(tmp) / uploaded.name
         src.write_bytes(uploaded.getvalue())
 
+        error_text = ""
         with st.status("准备音频…", expanded=True) as status:
             try:
                 chunks = prepare_audio(src, Path(tmp), int(chunk_minutes) * 60)
@@ -149,10 +150,13 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
                 status.update(label="完成", state="complete")
             except Exception as error:
                 status.update(label="失败", state="error")
-                message = str(error)
+                message = str(error) or repr(error)
                 if "Insufficient Memory" in message or "OutOfMemory" in message:
                     message = "本地模型显存不足：请换用 gpt-oss-20b 或 deepseek，或缩短切片长度。"
-                st.error(message[:300])
+                error_text = f"{type(error).__name__}: {message}"[:300]
+
+        if error_text:
+            st.error(error_text)
 
 if "md" in st.session_state:
     st.subheader(st.session_state["file"])
