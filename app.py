@@ -44,18 +44,30 @@ with st.sidebar:
     asr_mode = st.radio("转写方式", ["本地 Whisper（免费）", "云端 API"], index=0)
     llm_mode = st.radio("笔记生成", ["本地 Ollama（免费）", "云端 API"], index=0)
 
-    cloud_base = ""
-    cloud_key = ""
+    asr_base = ""
+    asr_key = ""
     asr_model = ""
-    if "云端" in asr_mode or "云端" in llm_mode:
-        cloud_base = st.text_input(
-            "云端 Base URL", os.getenv("OPENAI_BASE_URL", "https://api.siliconflow.cn/v1")
+    if "云端" in asr_mode:
+        st.caption("需要支持 OpenAI 格式 /audio/transcriptions 的服务")
+        asr_base = st.text_input(
+            "转写 Base URL",
+            os.getenv("CLOUD_ASR_BASE_URL")
+            or os.getenv("OPENAI_BASE_URL", "https://api.siliconflow.cn/v1"),
         )
-        cloud_key = st.text_input("云端 API Key", os.getenv("OPENAI_API_KEY", ""), type="password")
-        asr_model = st.text_input("云端 ASR 模型", os.getenv("ASR_MODEL", "FunAudioLLM/SenseVoiceSmall"))
+        asr_key = st.text_input(
+            "转写 API Key",
+            os.getenv("CLOUD_ASR_API_KEY") or os.getenv("OPENAI_API_KEY", ""),
+            type="password",
+        )
+        asr_model = st.text_input(
+            "转写模型",
+            os.getenv("CLOUD_ASR_MODEL")
+            or os.getenv("ASR_MODEL", "XingChenAGI/XingChenASR-V3.2-Ultra"),
+        )
 
     if "本地" in llm_mode:
-        llm_base = st.text_input("Ollama 地址", OLLAMA_DEFAULT)
+        llm_base = st.text_input("Ollama 地址", os.getenv("OLLAMA_BASE_URL", OLLAMA_DEFAULT))
+        llm_key = "ollama"
         preset = st.selectbox("笔记模型", OLLAMA_MODELS + ["自定义"])
         llm_model = (
             st.text_input("自定义模型名", "modelscope.cn/unsloth/gpt-oss-20b-GGUF:Q4_K_M")
@@ -63,8 +75,19 @@ with st.sidebar:
             else preset
         )
     else:
-        llm_base = cloud_base
-        llm_model = st.text_input("笔记模型", os.getenv("LLM_MODEL", ""))
+        st.caption("任何 OpenAI 兼容服务，例如 DeepSeek：https://api.deepseek.com")
+        llm_base = st.text_input(
+            "笔记 Base URL", os.getenv("CLOUD_LLM_BASE_URL", "https://api.deepseek.com")
+        )
+        llm_key = st.text_input(
+            "笔记 API Key",
+            os.getenv("CLOUD_LLM_API_KEY", ""),
+            type="password",
+        )
+        llm_model = st.text_input(
+            "笔记模型",
+            os.getenv("CLOUD_LLM_MODEL") or os.getenv("LLM_MODEL") or "deepseek-chat",
+        )
 
     target_lang = st.selectbox("笔记语言", ["中文", "English"])
     chunk_minutes = st.number_input("切片长度（分钟）", min_value=5, max_value=60, value=20)
@@ -82,10 +105,10 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
     local_asr = "本地" in asr_mode
     local_llm = "本地" in llm_mode
 
-    if not local_asr and not cloud_key:
-        st.error("使用云端转写需要在侧边栏填写 API Key")
+    if not local_asr and not asr_key:
+        st.error("使用云端转写需要在侧边栏填写该服务的 API Key")
         st.stop()
-    if not local_llm and not (cloud_base and cloud_key):
+    if not local_llm and not (llm_base and llm_key):
         st.error("使用云端生成需要在侧边栏填写 Base URL 和 API Key")
         st.stop()
 
@@ -113,7 +136,7 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
                         model=os.getenv("LOCAL_ASR_MODEL", LOCAL_ASR_MODEL),
                     )
                 else:
-                    asr_client = OpenAI(base_url=cloud_base, api_key=cloud_key)
+                    asr_client = OpenAI(base_url=asr_base, api_key=asr_key)
                     transcribe_one = lambda chunk: transcribe_chunk(asr_client, chunk, asr_model)
 
                 progress = st.progress(0.0)
@@ -129,10 +152,7 @@ if st.button("生成笔记", type="primary", disabled=uploaded is None):
                 status.write(f"转写完成，共 {len(segments)} 段；生成笔记中…")
                 transcript_md = format_transcript(segments)
 
-                llm_client = OpenAI(
-                    base_url=llm_base,
-                    api_key="ollama" if local_llm else cloud_key,
-                )
+                llm_client = OpenAI(base_url=llm_base, api_key=llm_key)
                 notes_md = generate_notes(
                     llm_client,
                     transcript_md,

@@ -91,6 +91,19 @@ streamlit run app.py
 云端按厂商价格计费，通常一小时课程在几毛钱以内。转写接口不返回分段时，
 程序会自动降级为整段文本，不会报错。如果报 `402`，通常是账户余额不足。
 
+### 混用不同厂商：本地转写 + DeepSeek 出笔记
+
+DeepSeek 目前只有文本模型（`deepseek-chat`、`deepseek-reasoner`），**没有语音转写接口**，
+所以推荐这样组合：
+
+- 转写方式：`本地 Whisper（免费）`
+- 笔记生成：`云端 API`
+- 笔记 Base URL：`https://api.deepseek.com`
+- 笔记模型：`deepseek-chat`
+- 笔记 API Key：DeepSeek 平台生成的 key
+
+转写和笔记的地址、密钥是完全独立的，也可以反过来：云端转写 + 本地 Ollama 出笔记。
+
 ## 工作原理
 
 ```
