@@ -15,7 +15,16 @@ Upload a lecture or meeting recording and get a one-page structured Markdown not
 
 ## 快速开始（本地模式，无需 API key）
 
-环境要求：macOS（Apple Silicon）、Python 3.10+、[Ollama](https://ollama.com)。
+环境要求：
+
+- macOS + Apple Silicon（本地转写依赖 mlx-whisper，Intel Mac 不可用）
+- 内存 16GB 以上（默认模型 11GB，转写时还要额外加载 Whisper）
+- Python 3.10+、[Ollama](https://ollama.com)、ffmpeg
+- Windows / Linux：本地转写不可用，请把"转写方式"和"笔记生成"都切到"云端 API"，
+  分别填写一个支持 `/audio/transcriptions` 的服务和一个对话模型服务
+
+如果侧边栏默认模型和 `ollama list` 里的名字对不上，选"自定义"填你本地实际的模型名，
+或在 `.env` 里设置 `OLLAMA_MODEL`。
 
 ### 1. 安装系统依赖
 

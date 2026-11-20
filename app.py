@@ -17,7 +17,7 @@ load_dotenv()
 
 OLLAMA_DEFAULT = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
 OLLAMA_MODELS = [
-    "modelscope.cn/unsloth/gpt-oss-20b-GGUF:Q4_K_M",
+    os.getenv("OLLAMA_MODEL", "gpt-oss:20b"),
     "deepseek:latest",
     "qwen3.8:latest",
 ]
