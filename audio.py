@@ -100,3 +100,35 @@ def prepare_audio(src: Path, work_dir: Path, chunk_seconds: int = 1200) -> list[
     work_dir.mkdir(parents=True, exist_ok=True)
     wav = extract_audio(src, work_dir)
     return split_audio(wav, chunk_seconds, work_dir)
+
+
+def has_speech(path: Path, noise_db: int = -35, min_silence: float = 1.0) -> bool:
+    duration = probe_duration(path)
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-i",
+            str(path),
+            "-af",
+            f"silencedetect=noise={noise_db}dB:d={min_silence}",
+            "-f",
+            "null",
+            "-",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    silence_total = 0.0
+    silence_start = None
+    for line in result.stderr.splitlines():
+        if "silence_start:" in line:
+            silence_start = float(line.split("silence_start:")[1].strip())
+        elif "silence_end:" in line:
+            end = float(line.split("silence_end:")[1].split("|")[0].strip())
+            if silence_start is not None:
+                silence_total += max(0.0, end - silence_start)
+            silence_start = None
+    if silence_start is not None:
+        silence_total += max(0.0, duration - silence_start)
+    return (duration - silence_total) >= 0.5
