@@ -4,6 +4,8 @@
 
 Upload a lecture or meeting recording and get a one-page structured Markdown note. Runs fully locally by default (Ollama + mlx-whisper).
 
+![class2notes 演示](assets/demo.gif)
+
 ## 它能做什么
 
 - 输入 `mp3` / `m4a` / `wav` / `mp4` 单个文件
